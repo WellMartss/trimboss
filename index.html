@@ -199,3 +199,27 @@
   </script>
 </body>
 </html>
+
+//TrimBoss - Sistema de Agendamento para Barbearias // Admin fixo no código: admin@trimboss.com / admin123
+
+const express = require('express'); const app = express(); const bodyParser = require('body-parser'); const cors = require('cors');
+
+app.use(cors()); app.use(bodyParser.json());
+
+// Banco de dados em memória (para testes) let usuarios = []; let agendamentos = [];
+
+// Admin fixo no código const adminEmail = 'admin@trimboss.com'; const adminSenha = 'admin123';
+
+// Middleware de autenticação function autenticar(req, res, next) { const { email, senha } = req.body; if ((email === adminEmail && senha === adminSenha) || usuarios.find(u => u.email === email && u.senha === senha)) { req.user = { email, admin: email === adminEmail }; next(); } else { res.status(401).json({ erro: 'Credenciais inválidas' }); } }
+
+// Cadastro (bloqueia o e-mail do admin) app.post('/cadastro', (req, res) => { const { email, senha, tipo } = req.body; if (email === adminEmail) { return res.status(403).json({ erro: 'Não é possível usar este e-mail' }); } if (usuarios.find(u => u.email === email)) { return res.status(409).json({ erro: 'Usuário já existe' }); } usuarios.push({ email, senha, tipo }); res.json({ sucesso: true }); });
+
+// Login app.post('/login', autenticar, (req, res) => { res.json({ sucesso: true, admin: req.user.admin }); });
+
+// Agendamento app.post('/agendar', autenticar, (req, res) => { const { barbeiro, cliente, horario } = req.body; if (agendamentos.find(a => a.barbeiro === barbeiro && a.horario === horario)) { return res.status(409).json({ erro: 'Horário já reservado' }); } agendamentos.push({ barbeiro, cliente, horario }); res.json({ sucesso: true }); });
+
+// Lista de agendamentos (apenas admin pode ver todos) app.get('/agendamentos', (req, res) => { const { email, senha } = req.query; if (email === adminEmail && senha === adminSenha) { return res.json(agendamentos); } const userAgendamentos = agendamentos.filter(a => a.cliente === email); res.json(userAgendamentos); });
+
+// Iniciar servidor const PORT = 3000; app.listen(PORT, () => { console.log(TrimBoss rodando na porta ${PORT}); });
+
+
