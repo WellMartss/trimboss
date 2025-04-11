@@ -1,138 +1,183 @@
-<!DOCTYPE html>
-<html lang="pt-br">
+<!DOCTYPE html><html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>TrimBoss - Agendamentos de Barbearia</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TrimBoss</title>
   <link rel="stylesheet" href="style.css" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f3f4f6;
+      margin: 0;
+      padding: 0;
+    }
+    .screen {
+      display: none;
+      padding: 20px;
+    }
+    .screen.active {
+      display: block;
+    }
+    input, select, button {
+      display: block;
+      margin: 10px 0;
+      padding: 10px;
+      width: 100%;
+      max-width: 400px;
+    }
+    h1 {
+      color: #333;
+    }
+    #barber-list li {
+      background: #fff;
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+    #appointment-form {
+      margin-top: 20px;
+    }
+  </style>
 </head>
 <body>
-  <header>
-    <h1>TrimBoss</h1>
-    <nav>
-      <button onclick="showPage('login')">Login</button>
-      <button onclick="showPage('cadastro')">Cadastro</button>
-      <button onclick="showPage('agenda')">Agendar</button>
-    </nav>
-  </header>
+  <div id="app">
+    <div id="login-screen" class="screen active">
+      <h1>TrimBoss Login</h1>
+      <input type="email" id="login-email" placeholder="Email" />
+      <input type="password" id="login-password" placeholder="Senha" />
+      <button onclick="login()">Entrar</button>
+      <p onclick="switchScreen('register-screen')">Não tem conta? Cadastre-se</p>
+    </div><div id="register-screen" class="screen">
+  <h1>Cadastro</h1>
+  <input type="text" id="register-name" placeholder="Nome" />
+  <input type="email" id="register-email" placeholder="Email" />
+  <input type="tel" id="register-phone" placeholder="Telefone" />
+  <input type="password" id="register-password" placeholder="Senha" />
+  <select id="register-role">
+    <option value="cliente">Cliente</option>
+    <option value="barbeiro">Barbeiro</option>
+    <option value="admin">Administrador</option>
+  </select>
+  <button onclick="register()">Cadastrar</button>
+  <p onclick="switchScreen('login-screen')">Já tem conta? Faça login</p>
+</div>
 
-  <main>
-    <section id="login" class="pagina">
-      <h2>Login</h2>
-      <input type="email" placeholder="E-mail" /><br>
-      <input type="password" placeholder="Senha" /><br>
-      <button>Entrar</button>
-    </section>
+<div id="main-screen" class="screen">
+  <h1>Bem-vindo ao TrimBoss</h1>
+  <input type="text" id="searchBarber" placeholder="Buscar barbeiro..." oninput="searchBarbers()" />
+  <ul id="barber-list"></ul>
+  <div id="appointment-form"></div>
+  <div id="review-form" style="display:none;">
+    <h2>Avaliar Barbeiro</h2>
+    <input type="number" id="rating" min="1" max="5" placeholder="Nota (1-5)" />
+    <textarea id="comment" placeholder="Comentário"></textarea>
+    <button onclick="submitReview()">Enviar Avaliação</button>
+  </div>
+  <button onclick="logout()">Sair</button>
+</div>
 
-    <section id="cadastro" class="pagina">
-      <h2>Cadastro</h2>
-      <input type="text" placeholder="Nome completo" /><br>
-      <input type="email" placeholder="E-mail" /><br>
-      <input type="tel" placeholder="Telefone" /><br>
-      <input type="password" placeholder="Senha" /><br>
-      <select>
-        <option>Cliente</option>
-        <option>Barbeiro</option>
-      </select><br>
-      <button>Cadastrar</button>
-    </section>
+  </div>  <script>
+    let users = [];
+    let currentUser = null;
+    let barbers = [];
 
-    <section id="agenda" class="pagina">
-      <h2>Agendamento</h2>
-      <label>Escolher barbeiro:</label>
-      <select>
-        <option>João Cortes</option>
-        <option>Barba Braba</option>
-      </select><br>
+    function switchScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(screenId).classList.add('active');
+    }
 
-      <label>Dia e Hora:</label>
-      <input type="datetime-local" /><br>
+    function register() {
+      const user = {
+        name: document.getElementById('register-name').value,
+        email: document.getElementById('register-email').value,
+        phone: document.getElementById('register-phone').value,
+        password: document.getElementById('register-password').value,
+        role: document.getElementById('register-role').value
+      };
+      users.push(user);
+      if (user.role === 'barbeiro') barbers.push(user);
+      alert('Cadastro realizado!');
+      switchScreen('login-screen');
+    }
 
-      <label>Local:</label>
-      <select>
-        <option>Ir até a barbearia</option>
-        <option>Atendimento em domicílio</option>
-      </select><br>
+    function login() {
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+      const found = users.find(u => u.email === email && u.password === password);
+      if (found) {
+        currentUser = found;
+        switchScreen('main-screen');
+        listBarbers();
+      } else {
+        alert('Usuário não encontrado!');
+      }
+    }
 
-      <button>Agendar</button>
-    </section>
-  </main>
+    function logout() {
+      currentUser = null;
+      switchScreen('login-screen');
+    }
 
-  <footer>
-    <p>&copy; 2025 TrimBoss - Todos os direitos reservados</p>
-  </footer>
+    function listBarbers() {
+      const list = document.getElementById('barber-list');
+      list.innerHTML = '';
+      barbers.forEach(barber => {
+        const li = document.createElement('li');
+        li.textContent = barber.name + ' - ' + barber.email;
+        li.onclick = () => showAppointmentForm(barber);
+        list.appendChild(li);
+      });
+    }
 
-  <script src="script.js"></script>
-</body>
+    function searchBarbers() {
+      const query = document.getElementById('searchBarber').value.toLowerCase();
+      const list = document.getElementById('barber-list');
+      list.innerHTML = '';
+      barbers.filter(b => b.name.toLowerCase().includes(query)).forEach(barber => {
+        const li = document.createElement('li');
+        li.textContent = barber.name + ' - ' + barber.email;
+        li.onclick = () => showAppointmentForm(barber);
+        list.appendChild(li);
+      });
+    }
+
+    function showAppointmentForm(barber) {
+      const form = document.getElementById('appointment-form');
+      form.innerHTML = `
+        <h2>Agendar com ${barber.name}</h2>
+        <input type="date" id="appointment-date" />
+        <input type="time" id="appointment-time" />
+        <select id="appointment-type">
+          <option value="barbearia">Ir até a barbearia</option>
+          <option value="domicilio">Atendimento domiciliar</option>
+        </select>
+        <button onclick="schedule('${barber.email}')">Agendar</button>
+      `;
+    }
+
+    const appointments = [];
+
+    function schedule(barberEmail) {
+      const date = document.getElementById('appointment-date').value;
+      const time = document.getElementById('appointment-time').value;
+      const type = document.getElementById('appointment-type').value;
+      if (appointments.find(a => a.barber === barberEmail && a.date === date && a.time === time)) {
+        alert('Este horário já está ocupado para esse barbeiro!');
+        return;
+      }
+      appointments.push({
+        client: currentUser.email,
+        barber: barberEmail,
+        date,
+        time,
+        type
+      });
+      alert('Agendamento realizado!');
+    }
+
+    function submitReview() {
+      alert('Função de avaliação ainda em desenvolvimento.');
+    }
+  </script></body>
 </html>
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  font-family: 'Segoe UI', sans-serif;
-  background: #f2f2f2;
-}
-
-header {
-  background: #111;
-  color: white;
-  padding: 1rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-header h1 {
-  margin: 0;
-  font-size: 1.5rem;
-}
-
-nav button {
-  margin-left: 10px;
-  padding: 8px 16px;
-  background-color: #00c853;
-  border: none;
-  color: white;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-main {
-  padding: 2rem;
-}
-
-.pagina {
-  display: none;
-  background: white;
-  padding: 1.5rem;
-  border-radius: 8px;
-  max-width: 400px;
-  margin: auto;
-  box-shadow: 0 0 12px rgba(0,0,0,0.1);
-}
-
-input, select, button {
-  width: 100%;
-  margin: 10px 0;
-  padding: 10px;
-  font-size: 1rem;
-}
-
-footer {
-  text-align: center;
-  padding: 1rem;
-  background: #111;
-  color: white;
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-}
-function showPage(pageId) {
-  document.querySelectorAll('.pagina').forEach(p => p.style.display = 'none');
-  document.getElementById(pageId).style.display = 'block';
-}
-
-// Mostrar a tela de login por padrão
-showPage('login');
