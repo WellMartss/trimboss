@@ -1,22 +1,201 @@
-// TrimBoss - Sistema de Agendamento para Barbearias // Admin fixo no código: admin@trimboss.com / admin123
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TrimBoss</title>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen p-4">
+  <div class="max-w-2xl mx-auto bg-white rounded-2xl shadow-xl p-6">
+    <h1 class="text-3xl font-bold text-center mb-4 text-blue-600">TrimBoss</h1>
 
-const express = require('express'); const app = express(); const bodyParser = require('body-parser'); const cors = require('cors');
+    <!-- Login/Cadastro -->
+    <div id="auth-section">
+      <input id="email" type="email" placeholder="Email" class="w-full mb-2 p-2 border rounded">
+      <input id="password" type="password" placeholder="Senha" class="w-full mb-2 p-2 border rounded">
+      <select id="role" class="w-full mb-2 p-2 border rounded">
+        <option value="">Tipo de usuário</option>
+        <option value="cliente">Cliente</option>
+        <option value="barbeiro">Barbeiro</option>
+        <option value="admin">Administrador</option>
+      </select>
+      <input id="nome" type="text" placeholder="Nome" class="w-full mb-2 p-2 border rounded">
+      <textarea id="bio" placeholder="Bio (só barbeiros)" class="w-full mb-2 p-2 border rounded"></textarea>
+      <button onclick="login()" class="bg-blue-600 text-white p-2 w-full rounded mb-2">Entrar</button>
+      <button onclick="register()" class="bg-green-600 text-white p-2 w-full rounded">Cadastrar</button>
+    </div>
 
-app.use(cors()); app.use(bodyParser.json());
+    <!-- UI Pós Login -->
+    <div id="user-section" class="hidden">
+      <p id="welcome-msg" class="mb-4 font-semibold"></p>
+      <button onclick="logout()" class="bg-red-600 text-white p-2 w-full rounded mb-4">Sair</button>
 
-// Banco de dados em memória (para testes) let usuarios = []; let agendamentos = [];
+      <!-- Cliente -->
+      <div id="cliente-ui" class="hidden">
+        <h2 class="text-lg font-bold mb-2">Buscar barbeiros</h2>
+        <input id="buscaBarbeiro" type="text" placeholder="Digite o nome do barbeiro..." class="w-full mb-2 p-2 border rounded" oninput="buscarBarbeiros()">
+        <ul id="resultadoBusca" class="mb-4 space-y-2"></ul>
 
-// Admin fixo no código const adminEmail = 'admin@trimboss.com'; const adminSenha = 'admin123';
+        <h2 class="text-lg font-bold mb-2">Agendar</h2>
+        <input id="barbeiroEmail" type="email" placeholder="Email do barbeiro" class="w-full mb-2 p-2 border rounded">
+        <input id="data" type="date" class="w-full mb-2 p-2 border rounded">
+        <input id="hora" type="time" class="w-full mb-2 p-2 border rounded">
+        <input id="preferencia" type="text" placeholder="Preferência de horário (ex: manhã)" class="w-full mb-2 p-2 border rounded">
+        <button onclick="agendar()" class="bg-blue-500 text-white w-full p-2 rounded">Agendar</button>
 
-// Middleware de autenticação function autenticar(req, res, next) { const { email, senha } = req.body; if ((email === adminEmail && senha === adminSenha) || usuarios.find(u => u.email === email && u.senha === senha)) { req.user = { email, admin: email === adminEmail }; next(); } else { res.status(401).json({ erro: 'Credenciais inválidas' }); } }
+        <h2 class="text-lg font-bold mt-4 mb-2">Avaliar barbeiro</h2>
+        <input id="avaliarEmail" type="email" placeholder="Email do barbeiro" class="w-full mb-2 p-2 border rounded">
+        <input id="nota" type="number" min="1" max="5" placeholder="Nota (1 a 5)" class="w-full mb-2 p-2 border rounded">
+        <textarea id="comentario" placeholder="Comentário" class="w-full mb-2 p-2 border rounded"></textarea>
+        <button onclick="avaliar()" class="bg-yellow-500 text-white w-full p-2 rounded">Enviar Avaliação</button>
+      </div>
 
-// Cadastro (bloqueia o e-mail do admin) app.post('/cadastro', (req, res) => { const { email, senha, tipo } = req.body; if (email === adminEmail) { return res.status(403).json({ erro: 'Não é possível usar este e-mail' }); } if (usuarios.find(u => u.email === email)) { return res.status(409).json({ erro: 'Usuário já existe' }); } usuarios.push({ email, senha, tipo }); res.json({ sucesso: true }); });
+      <!-- Barbeiro -->
+      <div id="barbeiro-ui" class="hidden">
+        <h2 class="text-lg font-bold mb-2">Seus Agendamentos</h2>
+        <ul id="lista-agendamentos" class="list-disc ml-4"></ul>
+      </div>
+    </div>
+  </div>
 
-// Login app.post('/login', autenticar, (req, res) => { res.json({ sucesso: true, admin: req.user.admin }); });
+  <script>
+    const firebaseConfig = {
+      apiKey: "SUA_API_KEY",
+      authDomain: "SEU_DOMINIO.firebaseapp.com",
+      projectId: "SEU_PROJECT_ID",
+      storageBucket: "SEU_BUCKET.appspot.com",
+      messagingSenderId: "SEU_SENDER_ID",
+      appId: "SEU_APP_ID"
+    };
 
-// Agendamento app.post('/agendar', autenticar, (req, res) => { const { barbeiro, cliente, horario } = req.body; if (agendamentos.find(a => a.barbeiro === barbeiro && a.horario === horario)) { return res.status(409).json({ erro: 'Horário já reservado' }); } agendamentos.push({ barbeiro, cliente, horario }); res.json({ sucesso: true }); });
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    let currentUserData = null;
 
-// Lista de agendamentos (apenas admin pode ver todos) app.get('/agendamentos', (req, res) => { const { email, senha } = req.query; if (email === adminEmail && senha === adminSenha) { return res.json(agendamentos); } const userAgendamentos = agendamentos.filter(a => a.cliente === email); res.json(userAgendamentos); });
+    function login() {
+      const email = document.getElementById("email").value;
+      const senha = document.getElementById("password").value;
+      auth.signInWithEmailAndPassword(email, senha)
+        .then(cred => loadUserUI(cred.user))
+        .catch(e => alert("Erro ao logar: " + e.message));
+    }
 
-// Iniciar servidor const PORT = 3000; app.listen(PORT, () => { console.log(TrimBoss rodando na porta ${PORT}); });
+    function register() {
+      const email = document.getElementById("email").value;
+      const senha = document.getElementById("password").value;
+      const role = document.getElementById("role").value;
+      const nome = document.getElementById("nome").value;
+      const bio = document.getElementById("bio").value;
+      if (!role) return alert("Escolha o tipo de usuário");
+      auth.createUserWithEmailAndPassword(email, senha)
+        .then(cred => {
+          return db.collection("usuarios").doc(cred.user.uid).set({ email, role, nome, bio });
+        })
+        .then(() => alert("Cadastro realizado! Faça login."))
+        .catch(e => alert("Erro: " + e.message));
+    }
 
+    function logout() {
+      auth.signOut().then(() => location.reload());
+    }
+
+    function loadUserUI(user) {
+      db.collection("usuarios").doc(user.uid).get().then(doc => {
+        if (!doc.exists) return;
+        currentUserData = doc.data();
+        document.getElementById("auth-section").classList.add("hidden");
+        document.getElementById("user-section").classList.remove("hidden");
+        document.getElementById("welcome-msg").innerText = `Olá, ${currentUserData.nome} (${currentUserData.role})`;
+
+        if (currentUserData.role === "cliente") {
+          document.getElementById("cliente-ui").classList.remove("hidden");
+        } else if (currentUserData.role === "barbeiro") {
+          document.getElementById("barbeiro-ui").classList.remove("hidden");
+          carregarAgendamentos(user.email);
+        }
+      });
+    }
+
+    function agendar() {
+      const barbeiroEmail = document.getElementById("barbeiroEmail").value;
+      const data = document.getElementById("data").value;
+      const hora = document.getElementById("hora").value;
+      const preferencia = document.getElementById("preferencia").value;
+      const horarioCompleto = `${data} ${hora}`;
+
+      db.collection("agendamentos")
+        .where("barbeiro", "==", barbeiroEmail)
+        .where("horario", "==", horarioCompleto)
+        .get()
+        .then(snapshot => {
+          if (!snapshot.empty) return alert("Horário já agendado!");
+          return db.collection("agendamentos").add({
+            cliente: auth.currentUser.email,
+            barbeiro: barbeiroEmail,
+            horario: horarioCompleto,
+            preferencia
+          });
+        })
+        .then(() => alert("Agendamento realizado!"));
+    }
+
+    function carregarAgendamentos(barbeiroEmail) {
+      const lista = document.getElementById("lista-agendamentos");
+      lista.innerHTML = "<li>Carregando...</li>";
+      db.collection("agendamentos")
+        .where("barbeiro", "==", barbeiroEmail)
+        .orderBy("horario")
+        .get()
+        .then(snapshot => {
+          lista.innerHTML = "";
+          if (snapshot.empty) return lista.innerHTML = "<li>Nenhum agendamento</li>";
+          snapshot.forEach(doc => {
+            const ag = doc.data();
+            const item = document.createElement("li");
+            item.innerText = `${ag.horario} - ${ag.cliente} (${ag.preferencia || 'sem preferência'})`;
+            lista.appendChild(item);
+          });
+        });
+    }
+
+    function avaliar() {
+      const email = document.getElementById("avaliarEmail").value;
+      const nota = parseInt(document.getElementById("nota").value);
+      const comentario = document.getElementById("comentario").value;
+      if (!email || !nota || !comentario) return alert("Preencha todos os campos");
+      db.collection("avaliacoes").add({
+        barbeiro: email,
+        nota,
+        comentario,
+        cliente: auth.currentUser.email
+      }).then(() => alert("Avaliação registrada!"));
+    }
+
+    function buscarBarbeiros() {
+      const termo = document.getElementById("buscaBarbeiro").value.toLowerCase();
+      const lista = document.getElementById("resultadoBusca");
+      db.collection("usuarios").where("role", "==", "barbeiro").get().then(snapshot => {
+        lista.innerHTML = "";
+        snapshot.forEach(doc => {
+          const b = doc.data();
+          if (b.nome.toLowerCase().includes(termo)) {
+            const li = document.createElement("li");
+            li.className = "border rounded p-2";
+            li.innerHTML = `<strong>${b.nome}</strong><br>${b.bio || ''}<br><small>${b.email}</small>`;
+            lista.appendChild(li);
+          }
+        });
+      });
+    }
+
+    auth.onAuthStateChanged(user => {
+      if (user) loadUserUI(user);
+    });
+  </script>
+</body>
+</html>
