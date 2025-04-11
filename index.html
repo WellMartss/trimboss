@@ -1,0 +1,110 @@
+<!-- Protótipo inicial do TrimBoss --><!DOCTYPE html><html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TrimBoss - Agendamentos</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #f0f0f0;
+    }
+    header {
+      background-color: #000;
+      color: white;
+      padding: 1rem;
+      text-align: center;
+    }
+    .container {
+      padding: 1rem;
+    }
+    .card {
+      background: white;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .input-group {
+      margin-bottom: 1rem;
+    }
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      background-color: #000;
+      color: white;
+      padding: 0.7rem 1.2rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>TrimBoss - Seu corte, seu estilo</h1>
+  </header>  <div class="container">
+    <div class="card">
+      <h2>Agendar corte</h2>
+      <div class="input-group">
+        <label for="barbeiro">Escolha o barbeiro:</label>
+        <select id="barbeiro">
+          <option value="">Selecione</option>
+          <option value="joao">João Cortes</option>
+          <option value="marcos">Marcos Fade</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label for="data">Data:</label>
+        <input type="date" id="data">
+      </div>
+      <div class="input-group">
+        <label for="hora">Hora:</label>
+        <input type="time" id="hora">
+      </div>
+      <div class="input-group">
+        <label for="local">Local do atendimento:</label>
+        <select id="local">
+          <option value="barbearia">Na barbearia</option>
+          <option value="domicilio">A domicílio</option>
+        </select>
+      </div>
+      <button onclick="confirmarAgendamento()">Agendar</button>
+    </div><div class="card">
+  <h2>Avalie seu barbeiro</h2>
+  <div class="input-group">
+    <label for="avaliacaoBarbeiro">Barbeiro:</label>
+    <select id="avaliacaoBarbeiro">
+      <option value="joao">João Cortes</option>
+      <option value="marcos">Marcos Fade</option>
+    </select>
+  </div>
+  <div class="input-group">
+    <label for="nota">Nota (1 a 5):</label>
+    <input type="number" id="nota" min="1" max="5">
+  </div>
+  <div class="input-group">
+    <label for="comentario">Comentário:</label>
+    <textarea id="comentario" rows="4"></textarea>
+  </div>
+  <button onclick="enviarAvaliacao()">Enviar Avaliação</button>
+</div>
+
+  </div>  <script>
+    function confirmarAgendamento() {
+      alert("Agendamento confirmado! Em breve o barbeiro entrará em contato.");
+    }
+
+    function enviarAvaliacao() {
+      alert("Obrigado pela sua avaliação! Isso ajuda os barbeiros a crescerem.");
+    }
+  </script></body>
+</html>
